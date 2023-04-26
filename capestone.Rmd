@@ -1,0 +1,153 @@
+---
+title: "Capestone"
+author: "Sougata"
+date: "2023-01-11"
+output: word_document
+---
+
+install.packages("tidyverse")
+install.packages("ggplot2")
+install.packages("dplyr")
+
+
+
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+```
+```{r}
+Jan <- read.csv("C:/Users/Sougata/Desktop/data_trip/New folder/202101-divvy-tripdata.csv")
+Feb <- read.csv("C:/Users/Sougata/Desktop/data_trip/New folder/202102-divvy-tripdata.csv")
+Mar <- read.csv("C:/Users/Sougata/Desktop/data_trip/New folder/202103-divvy-tripdata.csv")
+Apr <- read.csv("C:/Users/Sougata/Desktop/data_trip/New folder/202104-divvy-tripdata.csv")
+May <- read.csv("C:/Users/Sougata/Desktop/data_trip/New folder/202105-divvy-tripdata.csv")
+Jun <- read.csv("C:/Users/Sougata/Desktop/data_trip/New folder/202106-divvy-tripdata.csv")
+Jul <- read.csv("C:/Users/Sougata/Desktop/data_trip/New folder/202107-divvy-tripdata.csv")
+Aug <- read.csv("C:/Users/Sougata/Desktop/data_trip/New folder/202108-divvy-tripdata.csv")
+Sep <- read.csv("C:/Users/Sougata/Desktop/data_trip/New folder/202109-divvy-tripdata.csv")
+Oct <- read.csv("C:/Users/Sougata/Desktop/data_trip/New folder/202110-divvy-tripdata.csv")
+Nov <- read.csv("C:/Users/Sougata/Desktop/data_trip/New folder/202111-divvy-tripdata.csv")
+Dec <- read.csv("C:/Users/Sougata/Desktop/data_trip/New folder/202112-divvy-tripdata.csv")
+Jan22 <- read.csv("C:/Users/Sougata/Desktop/data_trip/New folder/202201-divvy-tripdata.csv")
+Feb22 <- read.csv("C:/Users/Sougata/Desktop/data_trip/New folder/202202-divvy-tripdata.csv")
+```
+
+```{r}
+triprawdata <- rbind(Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec)
+```
+
+
+```{r}
+nrow(triprawdata) #number of rows
+ncol(triprawdata) #number of columns
+head(triprawdata) #see the first 6 rows of the data frame
+tail(triprawdata) #see the last 6 rows of the data frame
+str(triprawdata)  #see list of columns and data types
+summary(triprawdata) #statistical summary of data
+colnames(triprawdata) #list of column names
+```
+
+#find the na data and remove it
+```{r}
+sum(is.na(triprawdata))
+triprawdata<- na.omit(triprawdata)
+```
+
+
+```{r}
+triprawdata$date <- as.Date(triprawdata$started_at) #The defalt format is yyyy-mm-dd
+  triprawdata$month <- format(as.Date(triprawdata$date), "%b")
+  triprawdata$day <- format(as.Date(triprawdata$date), "%d")
+  triprawdata$year <- format(as.Date(triprawdata$date),"%Y")
+  triprawdata$day_of_week <- format(as.Date(triprawdata$date),"%A")
+  triprawdata$ride_length <- difftime(triprawdata$ended_at,triprawdata$started_at)
+  glimpse(triprawdata)
+```
+
+```{r}
+triprawdata <- triprawdata %>%
+    select(-c(start_lat,start_lng,end_lat,end_lng)) #remove the unnecessary columns 
+```
+
+ install.packages("magrittr") # package installations are only needed the first time you use it
+  install.packages("dplyr")    # alternative installation of the %>%
+```{r}
+  library(magrittr) # needs to be run every time you start R and want to use %>%
+  library(dplyr)    # alternatively, this also loads %>%
+  summary(triprawdata)
+```
+```{r}
+View(triprawdata)
+```
+
+```{r}
+triprawdata$ride_length <- as.numeric(as.character(triprawdata$ride_length))
+  is.numeric(triprawdata$ride_length) #This code was for checking if the data was converted correctly.
+```
+```{r} 
+  triprawdata_v2 <- triprawdata
+View(triprawdata_v2)
+mean(triprawdata_v2$ride_length) 
+median(triprawdata_v2$ride_length) 
+max(triprawdata_v2$ride_length) 
+min(triprawdata_v2$ride_length)
+
+```  
+```{r}
+aggregate(triprawdata_v2$ride_length ~ triprawdata_v2$member_casual, FUN = mean)
+aggregate(triprawdata_v2$ride_length ~ triprawdata_v2$member_casual, FUN = median)
+aggregate(triprawdata_v2$ride_length ~ triprawdata_v2$member_casual, FUN = max)
+aggregate(triprawdata_v2$ride_length ~ triprawdata_v2$member_casual, FUN = min)
+
+aggregate(triprawdata_v2$ride_length ~ triprawdata_v2$member_casual + triprawdata_v2$day_of_week, FUN = mean)
+
+triprawdata_v2$day_of_week <- ordered(triprawdata_v2$day_of_week, levels=c("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"))
+
+aggregate(triprawdata_v2$ride_length ~ triprawdata_v2$member_casual + triprawdata_v2$day_of_week, FUN = mean)
+```
+
+```{r
+
+}
+triprawdata_v2 %>% 
+  mutate(weekday = wday(started_at, label = TRUE)) %>%  #creates weekday field using wday()
+  group_by(member_casual, weekday) %>%  #groups by usertype and weekday
+  summarise(number_of_rides = n(), average_duration = mean(ride_length)) %>%   # calculates the average duration
+  arrange(member_casual, weekday)
+
+counts <- aggregate(triprawdata_v2$ride_length ~ triprawdata_v2$member_casual + triprawdata_v2$day_of_week, FUN = mean)
+```
+```{r}
+##Ride type Vs. Number of trips
+triprawdata_v2 %>%
+  group_by(rideable_type, member_casual) %>%
+  summarise(number_of_rides = n()) %>%  
+  ggplot(aes(x= rideable_type, y=number_of_rides, fill= member_casual))+
+  geom_bar(stat='identity') +
+  scale_y_continuous(labels = function(x) format(x, scientific = FALSE)) +
+  labs(title ="Ride type Vs. Number of trips")
+```
+```{r}
+  ##Average trip duration by customer type Vs. rideable_type
+ triprawdata_v2 %>% 
+   group_by(member_casual, rideable_type) %>% 
+   summarise(number_of_rides = n()
+             ,average_duration =mean(ride_length)) %>% 
+   arrange(member_casual, rideable_type)  %>% 
+   ggplot(aes(x = rideable_type, y = average_duration, fill = member_casual)) +
+   geom_col(position = "dodge")
+ labs(title ="Average trip duration by customer type Vs. rideable_type")
+```
+```{r}
+#total trips by customer type vs month
+ triprawdata_v2 %>% 
+   group_by(member_casual,month) %>% 
+   summarise(number_of_rides = n()
+   ) %>% 
+   arrange(member_casual, month)  %>% 
+   ggplot(aes(x = month, y = number_of_rides, fill = member_casual)) +
+   geom_col(position = "dodge")
+ labs(title ="total trips by customer type vs month")
+```
